@@ -15,6 +15,7 @@ use TCG\Voyager\Events\BreadDataUpdated;
 use TCG\Voyager\Events\BreadImagesDeleted;
 use TCG\Voyager\Facades\Voyager;
 use TCG\Voyager\Http\Controllers\Traits\BreadRelationshipParser;
+use TCG\Voyager\Views\BreadManager;
 
 class VoyagerBaseController extends Controller
 {
@@ -301,7 +302,10 @@ class VoyagerBaseController extends Controller
             $view = "voyager::$slug.edit-add";
         }
 
-        return Voyager::view($view, compact('dataType', 'dataTypeContent', 'isModelTranslatable'));
+	    $manager = new BreadManager($dataTypeContent, $dataType->display_settings ?? null);
+	    $manager->load($dataType);
+
+	    return Voyager::view($view, compact('manager', 'dataType', 'dataTypeContent', 'isModelTranslatable'));
     }
 
     // POST BR(E)AD
@@ -390,7 +394,10 @@ class VoyagerBaseController extends Controller
             $view = "voyager::$slug.edit-add";
         }
 
-        return Voyager::view($view, compact('dataType', 'dataTypeContent', 'isModelTranslatable'));
+	    $manager = new BreadManager($dataTypeContent, $dataType->display_settings ?? null);
+	    $manager->load($dataType);
+
+	    return Voyager::view($view, compact('manager', 'dataType', 'dataTypeContent', 'isModelTranslatable'));
     }
 
     /**

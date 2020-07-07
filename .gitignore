@@ -6,3 +6,7 @@ build
 .lock
 composer.lock
 .phpunit.result.cache
+*.iml
+/yarn.lock
+/package-lock.json
+/.phpstorm.meta.php

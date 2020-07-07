@@ -1,12 +1,40 @@
 @php
-    $edit = !is_null($dataTypeContent->getKey());
-    $add  = is_null($dataTypeContent->getKey());
+
+    /**
+	 * Define vars for ide
+	 *
+	 * @var \TCG\Voyager\Views\BreadManager $manager
+	 * @var \Illuminate\Database\Eloquent\Model $dataTypeContent
+	 * @var \Illuminate\Support\ViewErrorBag $errors
+	 * @var \TCG\Voyager\Models\DataType $dataType
+	 */
+		$edit = !is_null($dataTypeContent->getKey());
+		$add  = is_null($dataTypeContent->getKey());
+		$tabs = $manager->getTabManager();
+
 @endphp
 
 @extends('voyager::master')
 
 @section('css')
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+        .tab-content > div {
+            padding-left: 0;
+        }
+        .form-edit-add > .nav {
+            padding-left: 15px;
+        }
+        .panel-form-groups > .panel-body {
+            padding: 20px 0;
+        }
+        .panel-form-groups > .panel-heading > .panel-actions {
+            right: 10px;
+        }
+        .voyager .panel + .panel.panel-action-bar {
+            margin-top: -22px;
+        }
+    </style>
 @stop
 
 @section('page_title', __('voyager::generic.'.($edit ? 'edit' : 'add')).' '.$dataType->getTranslatedAttribute('display_name_singular'))
@@ -22,25 +50,41 @@
 @section('content')
     <div class="page-content edit-add container-fluid">
         <div class="row">
-            <div class="col-md-12">
 
-                <div class="panel panel-bordered">
-                    <!-- form start -->
-                    <form role="form"
-                            class="form-edit-add"
-                            action="{{ $edit ? route('voyager.'.$dataType->slug.'.update', $dataTypeContent->getKey()) : route('voyager.'.$dataType->slug.'.store') }}"
-                            method="POST" enctype="multipart/form-data">
-                        <!-- PUT Method if we are editing -->
-                        @if($edit)
-                            {{ method_field("PUT") }}
+            <!-- form start -->
+            <form role="form"
+                  class="form-edit-add"
+                  action="{{ $edit ? route('voyager.'.$dataType->slug.'.update', $dataTypeContent->getKey()) : route('voyager.'.$dataType->slug.'.store') }}"
+                  method="POST" enctype="multipart/form-data">
+
+                <!-- PUT Method if we are editing -->
+            @if($edit)
+                {{ method_field("PUT") }}
+            @endif
+
+            <!-- CSRF TOKEN -->
+                {{ csrf_field() }}
+
+                <div class="panel-body hidden">
+                    @foreach($manager->getHiddenItems() as $row)
+                        @include("voyager::bread.form-field", ['row' => $row, 'dataType' => $dataType, 'dataTypeContent' => $dataTypeContent, 'errors' => $errors, 'edit' => $edit, 'add' => $add, 'hidden' => true])
+                    @endforeach
+                </div>
+
+                @if($tabs->count() > 1)
+                    <ul class="nav nav-pills" id="bread-tab" role="tablist">
+                        @foreach($tabs->getTabs() as $n => $tab)
+                            @php $name = $tab->getName(); @endphp
+                            <li class="nav-item{{ $n === 0 ? ' active' : '' }}">
+                                <a class="nav-link{{ $n === 0 ? ' active' : '' }}" href="#tab-{{ $name }}" data-toggle="tab" role="tab" aria-controls="tab-{{ $name }}" aria-selected="{{ $n === 0 ? 'true' : 'false' }}">{{ $tab->getLabel() }}</a>
+                            </li>
+                        @endforeach
+                    </ul>
+                    <div class="tab-content" id="bread-tab-content">
                         @endif
 
-                        <!-- CSRF TOKEN -->
-                        {{ csrf_field() }}
-
-                        <div class="panel-body">
-
-                            @if (count($errors) > 0)
+                        @if (count($errors) > 0)
+                            <div class="col-md-12">
                                 <div class="alert alert-danger">
                                     <ul>
                                         @foreach ($errors->all() as $error)
@@ -48,69 +92,37 @@
                                         @endforeach
                                     </ul>
                                 </div>
-                            @endif
+                            </div>
+                        @endif
 
-                            <!-- Adding / Editing -->
-                            @php
-                                $dataTypeRows = $dataType->{($edit ? 'editRows' : 'addRows' )};
-                            @endphp
-
-                            @foreach($dataTypeRows as $row)
-                                <!-- GET THE DISPLAY OPTIONS -->
-                                @php
-                                    $display_options = $row->details->display ?? NULL;
-                                    if ($dataTypeContent->{$row->field.'_'.($edit ? 'edit' : 'add')}) {
-                                        $dataTypeContent->{$row->field} = $dataTypeContent->{$row->field.'_'.($edit ? 'edit' : 'add')};
-                                    }
-                                @endphp
-                                @if (isset($row->details->legend) && isset($row->details->legend->text))
-                                    <legend class="text-{{ $row->details->legend->align ?? 'center' }}" style="background-color: {{ $row->details->legend->bgcolor ?? '#f0f0f0' }};padding: 5px;">{{ $row->details->legend->text }}</legend>
-                                @endif
-
-                                <div class="form-group @if($row->type == 'hidden') hidden @endif col-md-{{ $display_options->width ?? 12 }} {{ $errors->has($row->field) ? 'has-error' : '' }}" @if(isset($display_options->id)){{ "id=$display_options->id" }}@endif>
-                                    {{ $row->slugify }}
-                                    <label class="control-label" for="name">{{ $row->getTranslatedAttribute('display_name') }}</label>
-                                    @include('voyager::multilingual.input-hidden-bread-edit-add')
-                                    @if (isset($row->details->view))
-                                        @include($row->details->view, ['row' => $row, 'dataType' => $dataType, 'dataTypeContent' => $dataTypeContent, 'content' => $dataTypeContent->{$row->field}, 'action' => ($edit ? 'edit' : 'add'), 'view' => ($edit ? 'edit' : 'add'), 'options' => $row->details])
-                                    @elseif ($row->type == 'relationship')
-                                        @include('voyager::formfields.relationship', ['options' => $row->details])
+                        @foreach($tabs->getTabs() as $n => $tab)
+                            <div id="tab-{{ $tab->getName() }}" class="tab-pane @if($tabs->count() > 1) fade @if($n === 0) active in @endif @endif " role="tabpanel" aria-labelledby="{{ $tab->getName() }}-tab">
+                                @if($tab->isBaseBoards())
+                                    @if($tab->isAside())
+                                        @include("voyager::bread.board", array_merge(compact('boards', 'dataType', 'dataTypeContent', 'errors', 'edit', 'add'), ['boards' => $tab->getBaseBoards(), 'size' => 'body', 'actionBar' => true]))
+                                        @include("voyager::bread.board", array_merge(compact('boards', 'dataType', 'dataTypeContent', 'errors', 'edit', 'add'), ['boards' => $tab->getAsideBoards(), 'size' => 'aside']))
                                     @else
-                                        {!! app('voyager')->formField($row, $dataType, $dataTypeContent) !!}
+                                        @include("voyager::bread.board", array_merge(compact('boards', 'dataType', 'dataTypeContent', 'errors', 'edit', 'add'), ['boards' => $tab->getBaseBoards(), 'actionBar' => true]))
                                     @endif
+                                @elseif($tab->isAside())
+                                    @include("voyager::bread.board", array_merge(compact('boards', 'dataType', 'dataTypeContent', 'errors', 'edit', 'add'), ['boards' => $tab->getAsideBoards()]))
+                                @endif
+                            </div>
+                        @endforeach
 
-                                    @foreach (app('voyager')->afterFormFields($row, $dataType, $dataTypeContent) as $after)
-                                        {!! $after->handle($row, $dataType, $dataTypeContent) !!}
-                                    @endforeach
-                                    @if ($errors->has($row->field))
-                                        @foreach ($errors->get($row->field) as $error)
-                                            <span class="help-block">{{ $error }}</span>
-                                        @endforeach
-                                    @endif
-                                </div>
-                            @endforeach
+                        @if($tabs->count() > 1)
+                    </div>
+                @endif
 
-                        </div><!-- panel-body -->
+            </form>
 
-                        <div class="panel-footer">
-                            @section('submit-buttons')
-                                <button type="submit" class="btn btn-primary save">{{ __('voyager::generic.save') }}</button>
-                            @stop
-                            @yield('submit-buttons')
-                        </div>
-                    </form>
+            <iframe id="form_target" name="form_target" style="display:none"></iframe>
+            <form id="my_form" action="{{ route('voyager.upload') }}" target="form_target" method="post" enctype="multipart/form-data" style="width:0;height:0;overflow:hidden">
+                <input name="image" id="upload_file" type="file" onchange="$('#my_form').submit();this.value='';">
+                <input type="hidden" name="type_slug" id="type_slug" value="{{ $dataType->slug }}">
+                {{ csrf_field() }}
+            </form>
 
-                    <iframe id="form_target" name="form_target" style="display:none"></iframe>
-                    <form id="my_form" action="{{ route('voyager.upload') }}" target="form_target" method="post"
-                            enctype="multipart/form-data" style="width:0;height:0;overflow:hidden">
-                        <input name="image" id="upload_file" type="file"
-                                 onchange="$('#my_form').submit();this.value='';">
-                        <input type="hidden" name="type_slug" id="type_slug" value="{{ $dataType->slug }}">
-                        {{ csrf_field() }}
-                    </form>
-
-                </div>
-            </div>
         </div>
     </div>
 
@@ -144,21 +156,21 @@
         var $file;
 
         function deleteHandler(tag, isMulti) {
-          return function() {
-            $file = $(this).siblings(tag);
+            return function() {
+                $file = $(this).siblings(tag);
 
-            params = {
-                slug:   '{{ $dataType->slug }}',
-                filename:  $file.data('file-name'),
-                id:     $file.data('id'),
-                field:  $file.parent().data('field-name'),
-                multi: isMulti,
-                _token: '{{ csrf_token() }}'
-            }
+                params = {
+                    slug:   '{{ $dataType->slug }}',
+                    filename:  $file.data('file-name'),
+                    id:     $file.data('id'),
+                    field:  $file.parent().data('field-name'),
+                    multi: isMulti,
+                    _token: '{{ csrf_token() }}'
+                }
 
-            $('.confirm_delete_name').text(params.filename);
-            $('#confirm_delete_modal').modal('show');
-          };
+                $('.confirm_delete_name').text(params.filename);
+                $('#confirm_delete_modal').modal('show');
+            };
         }
 
         $('document').ready(function () {
@@ -180,7 +192,7 @@
             });
 
             @if ($isModelTranslatable)
-                $('.side-body').multilingual({"editing": true});
+            $('.side-body').multilingual({"editing": true});
             @endif
 
             $('.side-body input[data-slug-origin]').each(function(i, el) {
@@ -195,9 +207,9 @@
             $('#confirm_delete').on('click', function(){
                 $.post('{{ route('voyager.'.$dataType->slug.'.media.remove') }}', params, function (response) {
                     if ( response
-                        && response.data
-                        && response.data.status
-                        && response.data.status == 200 ) {
+                            && response.data
+                            && response.data.status
+                            && response.data.status == 200 ) {
 
                         toastr.success(response.data.message);
                         $file.parent().fadeOut(300, function() { $(this).remove(); })

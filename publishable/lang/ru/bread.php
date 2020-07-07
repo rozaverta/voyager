@@ -51,4 +51,5 @@ return [
     'updated_order'          => 'Сортировка обновлена успешно',
     'url_slug'               => 'URL Slug (должен быть уникальным)',
     'url_slug_ph'            => 'URL slug (например, posts)',
+	'display_settings'       => 'Настройки отображения',
 ];

@@ -20,8 +20,10 @@ use TCG\Voyager\FormFields\HandlerInterface;
 use TCG\Voyager\Models\Category;
 use TCG\Voyager\Models\DataRow;
 use TCG\Voyager\Models\DataType;
+use TCG\Voyager\Models\DataRoute;
 use TCG\Voyager\Models\Menu;
 use TCG\Voyager\Models\MenuItem;
+use TCG\Voyager\Models\Observers\DataRouteObesever;
 use TCG\Voyager\Models\Page;
 use TCG\Voyager\Models\Permission;
 use TCG\Voyager\Models\Post;
@@ -55,6 +57,7 @@ class Voyager
         'Category'    => Category::class,
         'DataRow'     => DataRow::class,
         'DataType'    => DataType::class,
+        'DataRoute'   => DataRoute::class,
         'Menu'        => Menu::class,
         'MenuItem'    => MenuItem::class,
         'Page'        => Page::class,
@@ -65,6 +68,8 @@ class Voyager
         'User'        => User::class,
         'Translation' => Translation::class,
     ];
+
+	protected $routes = [];
 
     public $setting_cache = null;
 
@@ -237,7 +242,16 @@ class Voyager
 
             foreach (self::model('Setting')->orderBy('order')->get() as $setting) {
                 $keys = explode('.', $setting->key);
-                @$this->setting_cache[$keys[0]][$keys[1]] = $setting->value;
+                if(!isset($this->setting_cache))
+                {
+	                $this->setting_cache = [];
+                }
+	            $group_name = $keys[0];
+                if(!isset($this->setting_cache[$group_name]))
+                {
+	                $this->setting_cache[$group_name] = [];
+                }
+                $this->setting_cache[$group_name][$keys[1] ?? ""] = $setting->value;
 
                 if ($globalCache) {
                     Cache::tags('settings')->forever($setting->key, $setting->value);
@@ -248,9 +262,9 @@ class Voyager
         $parts = explode('.', $key);
 
         if (count($parts) == 2) {
-            return @$this->setting_cache[$parts[0]][$parts[1]] ?: $default;
+            return @ $this->setting_cache[$parts[0]][$parts[1]] ?: $default;
         } else {
-            return @$this->setting_cache[$parts[0]] ?: $default;
+            return @ $this->setting_cache[$parts[0]] ?: $default;
         }
     }
 
@@ -263,10 +277,191 @@ class Voyager
         return $default;
     }
 
-    public function routes()
-    {
-        require __DIR__.'/../routes/voyager.php';
-    }
+	public function routes()
+	{
+		require __DIR__.'/../routes/voyager.php';
+	}
+
+	private function webRouteRule(\ReflectionMethod $method, $route, $use_slug, $as, $uses)
+	{
+		$rule = [
+			"route" => $route,
+			"as" => $as,
+			"uses" => $uses,
+			"where" => null,
+			"method" => null,
+		];
+
+		$comment = $method->getDocComment();
+		if($comment)
+		{
+			if($use_slug && preg_match('/@route_where (.+)(?:$|\n|\r)/', $comment, $m))
+			{
+				$where = trim($m[1]);
+				if($where)
+				{
+					$rule["where"] = $where;
+				}
+			}
+
+			if(preg_match('/@route_method (.+)(?:$|\n|\r)/', $comment, $m))
+			{
+				$method = trim($m[1]);
+				$method = Str::lower($method);
+				$method = preg_replace('/\s+/', '', $method);
+				if($method !== "get")
+				{
+					$rule["method"] = explode(",", $method);
+				}
+			}
+		}
+
+		return (object) $rule;
+	}
+
+	public function webRoutes()
+	{
+		$routes = Cache::
+			rememberForever("voyager.routers.web", function() {
+				return DataRoute::orderBy("order")
+					->get()
+					->map(function(DataRoute $dataRoute) {
+
+						/** @var \TCG\Voyager\Models\DataType $dataType */
+						$dataType = $dataRoute->dataType()->first();
+						if(!$dataType)
+						{
+							return null;
+						}
+
+						try {
+							$ref = new \ReflectionClass($dataRoute->controller_name);
+							if(!$ref->hasMethod('browse'))
+							{
+								return null;
+							}
+
+							$browse = $ref->getMethod('browse');
+							if($browse->isStatic() || ! $browse->isPublic())
+							{
+								return null;
+							}
+						}
+						catch(\ReflectionException $e) {
+							return null;
+						}
+
+						$prefix = "\\" . ltrim($dataRoute->controller_name, "\\");
+						$slug = trim($dataRoute->slug, "/");
+						$name = $dataRoute->name ? $dataRoute->name : $dataType->name;
+
+						$route_slug = $slug;
+						$route_rule = $browse->getNumberOfParameters() > 0;
+						if($route_rule)
+						{
+							$route_slug = $browse->getNumberOfRequiredParameters() > 0 ? "{slug}" : "{slug?}";
+							if($slug)
+							{
+								$route_slug = $slug . "/" . $route_slug;
+							}
+						}
+						else if(!$route_slug)
+						{
+							$route_slug = "/";
+						}
+
+						$route = [
+							"key" => $dataRoute->getKey(),
+							"key_type" => $dataType->getKey(),
+							"name" => $name,
+							"model_name" => $dataType->model_name,
+							"controller_name" => $dataRoute->controller_name,
+							"slug_field" => $dataRoute->slug_field ? $dataRoute->slug_field : "slug",
+							"template" => $dataRoute->template,
+							"preload" => false,
+							"routes" => [
+								$this->webRouteRule(
+									$browse,
+									$route_slug,
+									$route_rule,
+									$name . ".browse",
+									$prefix . "@browse"
+								)
+							],
+						];
+
+						if($ref->hasMethod('preload'))
+						{
+							$method = $ref->getMethod('preload');
+							if($method->isStatic() && $method->isPublic() && $method->getNumberOfParameters() === 1)
+							{
+								$route["preload"] = true;
+							}
+						}
+
+						if($slug)
+						{
+							$slug .= "/";
+						}
+
+						foreach($ref->getMethods(\ReflectionMethod::IS_PUBLIC) as $method)
+						{
+							$method_name = $method->getName();
+							if(!$method->isStatic() && preg_match('/^browse([A-Z][a-zA-Z])$/', $method_name, $m))
+							{
+								$route_name = Str::snake($m[1], "_");
+								$route_slug = str_replace("_", "-", $route_name);
+								if($route_name !== "browse")
+								{
+									$route_slug = $slug . $route_slug;
+									$route_rule = $method->getNumberOfParameters() > 0;
+									if($route_rule)
+									{
+										$route_slug .= $method->getNumberOfRequiredParameters() > 0 ? "{slug}" : "{slug?}";
+									}
+									$route["routes"][] = $this->webRouteRule(
+										$method,
+										$route_slug,
+										$route_rule,
+										$name . "." . $route_name,
+										$prefix . "@" . $method_name
+									);
+								}
+							}
+						}
+
+						return (object) $route;
+					})
+					->filter(function($value) {
+						return $value !== null;
+					})
+					->toArray();
+			});
+
+		foreach($routes as $route)
+		{
+			$this->routes[$route->model_name] = $route;
+			$this->routes[$route->controller_name] = $route;
+
+			$ref = new \ReflectionClass($route->model_name);
+			$ref
+				->getMethod('observe')
+				->invoke(null, DataRouteObesever::class );
+
+			if($route->preload)
+			{
+				$ref = new \ReflectionClass($route->controller_name);
+				$ref->getMethod("preload")->invoke(null, $route);
+			}
+		}
+
+		require __DIR__.'/../routes/web.php';
+	}
+
+	public function webRoute(string $name)
+	{
+		return $this->routes[$name] ?? null;
+	}
 
     public function getVersion()
     {

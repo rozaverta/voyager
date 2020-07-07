@@ -34,6 +34,7 @@ class DataType extends Model
         'order_direction',
         'default_search_key',
         'scope',
+	    'display_settings',
         'details',
     ];
 
@@ -295,6 +296,28 @@ class DataType extends Model
     {
         $this->attributes['details'] = collect($this->details)->merge(['order_direction' => $value]);
     }
+
+	public function getDisplaySettingsAttribute()
+	{
+		return $this->details->display_settings ?? null;
+	}
+
+	public function setDisplaySettingsAttribute($value)
+	{
+		if(is_string($value))
+		{
+			$value = json_decode($value);
+			if(!$value)
+			{
+				$value = new \stdClass();
+			}
+		}
+		else if(!$value)
+		{
+			$value = new \stdClass();
+		}
+		$this->attributes['details'] = collect($this->details)->merge(['display_settings' => $value]);
+	}
 
     public function getScopeAttribute()
     {

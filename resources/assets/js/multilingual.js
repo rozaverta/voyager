@@ -238,6 +238,8 @@
                     }
                 }
             }
+
+            inpUsr.trigger('multilingual', [ lang, _val ]);
         }
     });
 
