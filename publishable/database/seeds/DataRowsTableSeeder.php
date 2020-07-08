@@ -14,6 +14,7 @@ class DataRowsTableSeeder extends Seeder
         $userDataType = DataType::where('slug', 'users')->firstOrFail();
         $menuDataType = DataType::where('slug', 'menus')->firstOrFail();
         $roleDataType = DataType::where('slug', 'roles')->firstOrFail();
+        $dataRouteDataType = DataType::where('slug', 'data-routes')->firstOrFail();
 
         $dataRow = $this->dataRow($userDataType, 'id');
         if (!$dataRow->exists) {
@@ -350,6 +351,227 @@ class DataRowsTableSeeder extends Seeder
                 'order'        => 9,
             ])->save();
         }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'id');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'text',
+			    'display_name' => __('voyager::seeders.data_rows.id'),
+			    'required'     => 1,
+			    'browse'       => 0,
+			    'read'         => 0,
+			    'edit'         => 0,
+			    'add'          => 0,
+			    'delete'       => 0,
+			    'order'        => 1,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'data_type_id');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'select_dropdown',
+			    'display_name' => __('voyager::seeders.data_rows.data_type'),
+			    'required'     => 1,
+			    'browse'       => 1,
+			    'read'         => 1,
+			    'edit'         => 1,
+			    'add'          => 1,
+			    'delete'       => 1,
+			    'order'        => 2,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'title');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'text',
+			    'display_name' => __('voyager::seeders.data_rows.title'),
+			    'required'     => 1,
+			    'browse'       => 1,
+			    'read'         => 1,
+			    'edit'         => 1,
+			    'add'          => 1,
+			    'delete'       => 1,
+			    'order'        => 3,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'sub_title');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'text',
+			    'display_name' => __('voyager::seeders.data_rows.sub_title'),
+			    'required'     => 0,
+			    'browse'       => 0,
+			    'read'         => 1,
+			    'edit'         => 1,
+			    'add'          => 1,
+			    'delete'       => 1,
+			    'order'        => 4,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'name');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'text',
+			    'display_name' => __('voyager::seeders.data_rows.name'),
+			    'required'     => 0,
+			    'browse'       => 0,
+			    'read'         => 1,
+			    'edit'         => 1,
+			    'add'          => 1,
+			    'delete'       => 1,
+			    'order'        => 6,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'slug');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'text',
+			    'display_name' => __('voyager::seeders.data_rows.slug'),
+			    'required'     => 1,
+			    'browse'       => 1,
+			    'read'         => 1,
+			    'edit'         => 1,
+			    'add'          => 1,
+			    'delete'       => 1,
+			    'order'        => 7,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'slug_field');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'text',
+			    'display_name' => __('voyager::seeders.data_rows.slug_field'),
+			    'required'     => 0,
+			    'browse'       => 0,
+			    'read'         => 1,
+			    'edit'         => 1,
+			    'add'          => 1,
+			    'delete'       => 1,
+			    'order'        => 8,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'controller_name');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'text',
+			    'display_name' => __('voyager::seeders.data_rows.controller'),
+			    'required'     => 1,
+			    'browse'       => 0,
+			    'read'         => 1,
+			    'edit'         => 1,
+			    'add'          => 1,
+			    'delete'       => 1,
+			    'order'        => 9,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'template');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'text',
+			    'display_name' => __('voyager::seeders.data_rows.template'),
+			    'required'     => 1,
+			    'browse'       => 0,
+			    'read'         => 1,
+			    'edit'         => 1,
+			    'add'          => 1,
+			    'delete'       => 1,
+			    'order'        => 10,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'body');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'rich_text_box',
+			    'display_name' => __('voyager::seeders.data_rows.body'),
+			    'required'     => 0,
+			    'browse'       => 0,
+			    'read'         => 1,
+			    'edit'         => 1,
+			    'add'          => 1,
+			    'delete'       => 1,
+			    'order'        => 11,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'order');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'text',
+			    'display_name' => __('voyager::seeders.data_rows.order'),
+			    'required'     => 0,
+			    'browse'       => 1,
+			    'read'         => 1,
+			    'edit'         => 0,
+			    'add'          => 0,
+			    'delete'       => 0,
+			    'order'        => 12,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'created_at');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'timestamp',
+			    'display_name' => __('voyager::seeders.data_rows.created_at'),
+			    'required'     => 0,
+			    'browse'       => 0,
+			    'read'         => 0,
+			    'edit'         => 0,
+			    'add'          => 0,
+			    'delete'       => 0,
+			    'order'        => 13,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'updated_at');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'timestamp',
+			    'display_name' => __('voyager::seeders.data_rows.updated_at'),
+			    'required'     => 0,
+			    'browse'       => 0,
+			    'read'         => 0,
+			    'edit'         => 0,
+			    'add'          => 0,
+			    'delete'       => 0,
+			    'order'        => 14,
+		    ])->save();
+	    }
+
+	    $dataRow = $this->dataRow($dataRouteDataType, 'data_route_hasone_data_type_relationship');
+	    if (!$dataRow->exists) {
+		    $dataRow->fill([
+			    'type'         => 'relationship',
+			    'display_name' => __('voyager::seeders.data_rows.data_type'),
+			    'required'     => 0,
+			    'browse'       => 1,
+			    'read'         => 1,
+			    'edit'         => 1,
+			    'add'          => 1,
+			    'delete'       => 0,
+			    'details'      => [
+				    'model'       => 'TCG\\Voyager\\Models\\DataType',
+				    'table'       => 'data_types',
+				    'type'        => 'belongsTo',
+				    'column'      => 'data_type_id',
+				    'key'         => 'id',
+				    'label'       => 'name',
+				    'pivot_table' => 'migrations',
+				    'pivot'       => 0,
+				    'taggable'    => 0,
+			    ],
+			    'order'        => 5,
+		    ])->save();
+	    }
     }
 
     /**

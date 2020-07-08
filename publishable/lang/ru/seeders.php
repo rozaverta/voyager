@@ -27,6 +27,11 @@ return [
         'status'           => 'Статус',
         'title'            => 'Название',
         'updated_at'       => 'Дата обновления',
+	    'data_type'        => 'Таблица данных',
+	    'sub_title'        => 'Подзаголовок',
+	    'slug_field'       => 'Поле для URL/Slug',
+	    'controller'       => 'Контроллер',
+	    'template'         => 'Директория для шаблона',
     ],
     'data_types' => [
         'category' => [
@@ -53,6 +58,10 @@ return [
             'singular' => 'Пользователь',
             'plural'   => 'Пользователи',
         ],
+	    'data_route'     => [
+		    'singular' => 'Маршрут',
+		    'plural'   => 'Маршрутизация',
+	    ],
     ],
     'menu_items' => [
         'bread'        => 'BREAD',
@@ -68,6 +77,7 @@ return [
         'settings'     => 'Настройки',
         'tools'        => 'Инструменты',
         'users'        => 'Пользователи',
+	    'data_routes'  => 'Маршрутизация',
     ],
     'roles'      => [
         'admin' => 'Администратор',

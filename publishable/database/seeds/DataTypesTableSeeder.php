@@ -52,6 +52,20 @@ class DataTypesTableSeeder extends Seeder
                 'description'           => '',
             ])->save();
         }
+
+	    $dataType = $this->dataType('slug', 'data-routes');
+	    if (!$dataType->exists) {
+		    $dataType->fill([
+			    'name'                  => 'data_routes',
+			    'display_name_singular' => __('voyager::seeders.data_types.data_route.singular'),
+			    'display_name_plural'   => __('voyager::seeders.data_types.data_route.plural'),
+			    'icon'                  => 'voyager-milestone',
+			    'model_name'            => 'TCG\\Voyager\\Models\\DataRoute',
+			    'controller'            => '',
+			    'generate_permissions'  => 1,
+			    'description'           => '',
+		    ])->save();
+	    }
     }
 
     /**

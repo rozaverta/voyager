@@ -27,6 +27,11 @@ return [
         'status'           => 'Status',
         'title'            => 'Title',
         'updated_at'       => 'Updated At',
+	    'data_type'        => 'Data Type',
+	    'sub_title'        => 'Sub Title',
+	    'slug_field'       => 'Slug field',
+	    'controller'       => 'Controller',
+	    'template'         => 'Template directory',
     ],
     'data_types' => [
         'category' => [
@@ -53,6 +58,10 @@ return [
             'singular' => 'User',
             'plural'   => 'Users',
         ],
+	    'data_route'     => [
+		    'singular' => 'Route',
+		    'plural'   => 'Routes',
+	    ],
     ],
     'menu_items' => [
         'bread'        => 'BREAD',
@@ -68,6 +77,7 @@ return [
         'settings'     => 'Settings',
         'tools'        => 'Tools',
         'users'        => 'Users',
+	    'data_routes'  => 'Routing',
     ],
     'roles'      => [
         'admin' => 'Administrator',
