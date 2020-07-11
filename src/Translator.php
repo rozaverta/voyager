@@ -11,6 +11,7 @@ class Translator implements ArrayAccess, JsonSerializable
 {
     protected $model;
     protected $attributes = [];
+	protected $attributes_empty = [];
     protected $locale;
 
     public function __construct(Model $model)
@@ -21,18 +22,16 @@ class Translator implements ArrayAccess, JsonSerializable
 
         $this->model = $model;
         $this->locale = config('voyager.multilingual.default', 'en');
-        $attributes = [];
 
         foreach ($this->model->getAttributes() as $attribute => $value) {
-            $attributes[$attribute] = [
+	        $this->attributes_empty[$attribute] = $this->isEmpty($value);
+	        $this->attributes[$attribute] = [
                 'value'    => $value,
                 'locale'   => $this->locale,
                 'exists'   => true,
                 'modified' => false,
             ];
         }
-
-        $this->attributes = $attributes;
     }
 
     public function translate($locale = null, $fallback = true)
@@ -56,32 +55,60 @@ class Translator implements ArrayAccess, JsonSerializable
         $attributes = $this->getModifiedAttributes();
         $savings = [];
 
-        foreach ($attributes as $key => $attribute) {
-            if ($attribute['exists']) {
-                $translation = $this->getTranslationModel($key);
-            } else {
-                $translation = VoyagerFacade::model('Translation')->where('table_name', $this->model->getTable())
-                    ->where('column_name', $key)
-                    ->where('foreign_key', $this->model->getKey())
-                    ->where('locale', $this->locale)
-                    ->first();
-            }
+        foreach ($attributes as $key => $attribute)
+        {
+        	$exists = true;
 
-            if (is_null($translation)) {
-                $translation = VoyagerFacade::model('Translation');
-            }
+        	if(($this->attributes_empty[$key] ?? false) && $this->isEmpty($attribute['value']))
+        	{
+		        if( $attribute['exists'] )
+		        {
+			        $savings[] = VoyagerFacade::model('Translation')
+				        ->where('table_name', $this->model->getTable())
+				        ->where('column_name', $key)
+				        ->where('foreign_key', $this->model->getKey())
+				        ->where('locale', $this->locale)
+				        ->delete();
 
-            $translation->fill([
-                'table_name'  => $this->model->getTable(),
-                'column_name' => $key,
-                'foreign_key' => $this->model->getKey(),
-                'value'       => $attribute['value'],
-                'locale'      => $this->locale,
-            ]);
+			        $exists = false;
+		        }
+		        else
+		        {
+		        	continue;
+		        }
+	        }
+	        else
+	        {
+		        if ($attribute['exists'])
+		        {
+			        $translation = $this->getTranslationModel($key);
+		        }
+		        else
+		        {
+			        $translation = VoyagerFacade::model('Translation')->where('table_name', $this->model->getTable())
+				        ->where('column_name', $key)
+				        ->where('foreign_key', $this->model->getKey())
+				        ->where('locale', $this->locale)
+				        ->first();
+		        }
 
-            $savings[] = $translation->save();
+		        if (is_null($translation))
+		        {
+			        $translation = VoyagerFacade::model('Translation');
+		        }
 
-            $this->attributes[$key]['locale'] = $this->locale;
+		        $translation->fill([
+			        'table_name'  => $this->model->getTable(),
+			        'column_name' => $key,
+			        'foreign_key' => $this->model->getKey(),
+			        'value'       => $attribute['value'],
+			        'locale'      => $this->locale,
+		        ]);
+
+		        $savings[] = $translation->save();
+	        }
+
+            $this->attributes[$key]['locale'] = $exists;
             $this->attributes[$key]['exists'] = true;
             $this->attributes[$key]['modified'] = false;
         }
@@ -324,4 +351,17 @@ class Translator implements ArrayAccess, JsonSerializable
             return $array['value'];
         }, $this->getRawAttributes());
     }
+
+	private function isEmpty($value)
+	{
+		if(!isset($value))
+		{
+			return true;
+		}
+		if(is_string($value))
+		{
+			return strlen(trim($value)) === 0;
+		}
+		return $value === false || is_array($value) && count($value) === 0;
+	}
 }

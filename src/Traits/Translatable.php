@@ -136,7 +136,7 @@ trait Translatable
             return $this->getAttributeValue($attribute);
         }
 
-        list($value) = $this->getTranslatedAttributeMeta($attribute, $language, $fallback);
+        [$value] = $this->getTranslatedAttributeMeta($attribute, $language, $fallback);
 
         return $value;
     }
@@ -228,10 +228,19 @@ trait Translatable
         $default = config('voyager.multilingual.default', 'en');
         $locales = config('voyager.multilingual.locales', [$default]);
 
-        foreach ($locales as $locale) {
-            if (empty($translations[$locale])) {
-                continue;
-            }
+        foreach ($locales as $locale)
+        {
+	        if (empty($translations[$locale]))
+	        {
+		        if($this->exists)
+		        {
+			        $translations[$locale] = $translations[$locale] ?? "";
+		        }
+		        else
+		        {
+			        continue;
+		        }
+	        }
 
             if ($locale == $default) {
                 $this->$attribute = $translations[$locale];
@@ -332,14 +341,15 @@ trait Translatable
             ->delete();
     }
 
-    /**
-     * Prepare translations and set default locale field value.
-     *
-     * @param object $request
-     *
-     * @return array translations
-     */
-    public function prepareTranslations($request)
+	/**
+	 * Prepare translations and set default locale field value.
+	 *
+	 * @param object $request
+	 *
+	 * @return array translations
+	 * @throws Exception
+	 */
+	public function prepareTranslations($request)
     {
         $translations = [];
 
@@ -373,14 +383,15 @@ trait Translatable
         return $translations;
     }
 
-    /**
-     * Prepare translations and set default locale field value.
-     *
-     * @param object $requestData
-     *
-     * @return array translations
-     */
-    public function prepareTranslationsFromArray($field, &$requestData)
+	/**
+	 * Prepare translations and set default locale field value.
+	 *
+	 * @param        $field
+	 * @param object $requestData
+	 * @return array translations
+	 * @throws Exception
+	 */
+    public function prepareTranslationsFromArray($field, & $requestData)
     {
         $translations = [];
 
