@@ -10,6 +10,7 @@ namespace TCG\Voyager\Views;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
+use TCG\Voyager\Models\DataRow;
 use TCG\Voyager\Models\DataType;
 
 class BreadManager
@@ -147,7 +148,10 @@ class BreadManager
 		// fill content
 		foreach($rows as $row)
 		{
+			/** @var DataRow $row */
 			$display = $row->details->display ?? new \stdClass();
+			$hidden = false;
+
 			if(isset($display->rule))
 			{
 				// show
@@ -156,7 +160,7 @@ class BreadManager
 					$variant = (array) $display->rule->show;
 					if( !in_array($user_role, $variant, true))
 					{
-						continue;
+						$hidden = true;
 					}
 				}
 
@@ -166,9 +170,17 @@ class BreadManager
 					$variant = (array) $display->rule->hidden;
 					if( in_array($user_role, $variant, true))
 					{
-						continue;
+						$hidden = true;
 					}
 				}
+			}
+
+			if($hidden)
+			{
+				$details = $row->details ?? new \stdClass();
+				$details->hiddenByManager = true;
+				$row->setAttribute("type", "hidden");
+				$row->setAttribute("details", $details);
 			}
 
 			// hidden ?
