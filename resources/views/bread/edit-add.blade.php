@@ -160,13 +160,13 @@
                 $file = $(this).siblings(tag);
 
                 params = {
-                    slug:   '{{ $dataType->slug }}',
+                    slug: $file.data('slug') || '{{ $dataType->slug }}',
                     filename:  $file.data('file-name'),
                     id:     $file.data('id'),
                     field:  $file.parent().data('field-name'),
                     multi: isMulti,
                     _token: '{{ csrf_token() }}'
-                }
+                };
 
                 $('.confirm_delete_name').text(params.filename);
                 $('#confirm_delete_modal').modal('show');
