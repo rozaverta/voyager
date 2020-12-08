@@ -440,7 +440,8 @@ class Voyager
 
 	public function webRoutes()
 	{
-		foreach($this->webRoutesData() as $route)
+		$routes = $this->webRoutesData();
+		foreach($routes as $route)
 		{
 			$this->routes[$route->model_name] = $route;
 			$this->routes[$route->controller_name] = $route;
