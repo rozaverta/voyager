@@ -319,126 +319,128 @@ class Voyager
 		return (object) $rule;
 	}
 
-	public function webRoutes()
+	public function webRoutesData()
 	{
-		$routes = Cache::
-			rememberForever("voyager.routers.web", function() {
-				return DataRoute::orderBy("order")
-					->get()
-					->map(function(DataRoute $dataRoute) {
+		return Cache::rememberForever("voyager.routers.web", function() {
+			return DataRoute::orderBy("order")
+				->get()
+				->map(function(DataRoute $dataRoute) {
 
-						/** @var \TCG\Voyager\Models\DataType $dataType */
-						$dataType = $dataRoute->dataType()->first();
-						if(!$dataType)
+					/** @var \TCG\Voyager\Models\DataType $dataType */
+					$dataType = $dataRoute->dataType()->first();
+					if(!$dataType)
+					{
+						return null;
+					}
+
+					try {
+						$ref = new \ReflectionClass($dataRoute->controller_name);
+						if(!$ref->hasMethod('browse'))
 						{
 							return null;
 						}
 
-						try {
-							$ref = new \ReflectionClass($dataRoute->controller_name);
-							if(!$ref->hasMethod('browse'))
-							{
-								return null;
-							}
-
-							$browse = $ref->getMethod('browse');
-							if($browse->isStatic() || ! $browse->isPublic())
-							{
-								return null;
-							}
-						}
-						catch(\ReflectionException $e) {
+						$browse = $ref->getMethod('browse');
+						if($browse->isStatic() || ! $browse->isPublic())
+						{
 							return null;
 						}
+					}
+					catch(\ReflectionException $e) {
+						return null;
+					}
 
-						$prefix = "\\" . ltrim($dataRoute->controller_name, "\\");
-						$slug = trim($dataRoute->slug, "/");
-						$name = $dataRoute->name ? $dataRoute->name : $dataType->name;
+					$prefix = "\\" . ltrim($dataRoute->controller_name, "\\");
+					$slug = trim($dataRoute->slug, "/");
+					$name = $dataRoute->name ? $dataRoute->name : $dataType->name;
 
-						$route_slug = $slug;
-						$route_rule = $browse->getNumberOfParameters() > 0;
-						if($route_rule)
-						{
-							$route_slug = $browse->getNumberOfRequiredParameters() > 0 ? "{slug}" : "{slug?}";
-							if($slug)
-							{
-								$route_slug = $slug . "/" . $route_slug;
-							}
-						}
-						else if(!$route_slug)
-						{
-							$route_slug = "/";
-						}
-
-						$route = [
-							"key" => $dataRoute->getKey(),
-							"key_type" => $dataType->getKey(),
-							"name" => $name,
-							"model_name" => $dataType->model_name,
-							"controller_name" => $dataRoute->controller_name,
-							"slug_field" => $dataRoute->slug_field ? $dataRoute->slug_field : "slug",
-							"template" => $dataRoute->template,
-							"preload" => false,
-							"routes" => [
-								$this->webRouteRule(
-									$browse,
-									$route_slug,
-									$route_rule,
-									$name . ".browse",
-									$prefix . "@browse"
-								)
-							],
-						];
-
-						if($ref->hasMethod('preload'))
-						{
-							$method = $ref->getMethod('preload');
-							if($method->isStatic() && $method->isPublic() && $method->getNumberOfParameters() === 1)
-							{
-								$route["preload"] = true;
-							}
-						}
-
+					$route_slug = $slug;
+					$route_rule = $browse->getNumberOfParameters() > 0;
+					if($route_rule)
+					{
+						$route_slug = $browse->getNumberOfRequiredParameters() > 0 ? "{slug}" : "{slug?}";
 						if($slug)
 						{
-							$slug .= "/";
+							$route_slug = $slug . "/" . $route_slug;
 						}
+					}
+					else if(!$route_slug)
+					{
+						$route_slug = "/";
+					}
 
-						foreach($ref->getMethods(\ReflectionMethod::IS_PUBLIC) as $method)
+					$route = [
+						"key" => $dataRoute->getKey(),
+						"key_type" => $dataType->getKey(),
+						"name" => $name,
+						"model_name" => $dataType->model_name,
+						"controller_name" => $dataRoute->controller_name,
+						"slug_field" => $dataRoute->slug_field ? $dataRoute->slug_field : "slug",
+						"template" => $dataRoute->template,
+						"preload" => false,
+						"routes" => [
+							$this->webRouteRule(
+								$browse,
+								$route_slug,
+								$route_rule,
+								$name . ".browse",
+								$prefix . "@browse"
+							)
+						],
+					];
+
+					if($ref->hasMethod('preload'))
+					{
+						$method = $ref->getMethod('preload');
+						if($method->isStatic() && $method->isPublic() && $method->getNumberOfParameters() === 1)
 						{
-							$method_name = $method->getName();
-							if(!$method->isStatic() && preg_match('/^browse([A-Z][a-zA-Z])$/', $method_name, $m))
+							$route["preload"] = true;
+						}
+					}
+
+					if($slug)
+					{
+						$slug .= "/";
+					}
+
+					foreach($ref->getMethods(\ReflectionMethod::IS_PUBLIC) as $method)
+					{
+						$method_name = $method->getName();
+						if(!$method->isStatic() && preg_match('/^browse([A-Z][a-zA-Z])$/', $method_name, $m))
+						{
+							$route_name = Str::snake($m[1], "_");
+							$route_slug = str_replace("_", "-", $route_name);
+							if($route_name !== "browse")
 							{
-								$route_name = Str::snake($m[1], "_");
-								$route_slug = str_replace("_", "-", $route_name);
-								if($route_name !== "browse")
+								$route_slug = $slug . $route_slug;
+								$route_rule = $method->getNumberOfParameters() > 0;
+								if($route_rule)
 								{
-									$route_slug = $slug . $route_slug;
-									$route_rule = $method->getNumberOfParameters() > 0;
-									if($route_rule)
-									{
-										$route_slug .= $method->getNumberOfRequiredParameters() > 0 ? "{slug}" : "{slug?}";
-									}
-									$route["routes"][] = $this->webRouteRule(
-										$method,
-										$route_slug,
-										$route_rule,
-										$name . "." . $route_name,
-										$prefix . "@" . $method_name
-									);
+									$route_slug .= $method->getNumberOfRequiredParameters() > 0 ? "{slug}" : "{slug?}";
 								}
+								$route["routes"][] = $this->webRouteRule(
+									$method,
+									$route_slug,
+									$route_rule,
+									$name . "." . $route_name,
+									$prefix . "@" . $method_name
+								);
 							}
 						}
+					}
 
-						return (object) $route;
-					})
-					->filter(function($value) {
-						return $value !== null;
-					})
-					->toArray();
-			});
+					return (object) $route;
+				})
+				->filter(function($value) {
+					return $value !== null;
+				})
+				->toArray();
+		});
+	}
 
-		foreach($routes as $route)
+	public function webRoutes()
+	{
+		foreach($this->webRoutesData() as $route)
 		{
 			$this->routes[$route->model_name] = $route;
 			$this->routes[$route->controller_name] = $route;
